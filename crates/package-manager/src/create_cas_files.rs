@@ -1,13 +1,14 @@
 use crate::{link_file, LinkFileError};
 use derive_more::{Display, Error};
+use futures_util::future::try_join_all;
 use miette::Diagnostic;
 use pacquet_npmrc::PackageImportMethod;
-use rayon::prelude::*;
 use std::{
     collections::HashMap,
     ffi::OsString,
     path::{Path, PathBuf},
 };
+use tokio::task::spawn_blocking;
 
 /// Error type for [`create_cas_files`].
 #[derive(Debug, Display, Error, Diagnostic)]
@@ -34,10 +35,21 @@ pub async fn create_cas_files(
         return Ok(());
     }
 
-    cas_paths
-        .par_iter()
-        .try_for_each(|(cleaned_entry, store_path)| {
-            link_file(store_path, &dir_path.join(cleaned_entry))
+    let res = try_join_all(cas_paths.iter().map(|(cleaned_entry, store_path)| {
+        let store_path = store_path.clone();
+        let target_link = dir_path.join(cleaned_entry);
+        spawn_blocking(move || {
+            link_file(&store_path, &target_link).map_err(CreateCasFilesError::LinkFile)
         })
-        .map_err(CreateCasFilesError::LinkFile)
+    }))
+    .await;
+
+    // Ignore join error
+    if let Ok(res) = res {
+        for res in res {
+            res?;
+        }
+    }
+
+    Ok(())
 }
