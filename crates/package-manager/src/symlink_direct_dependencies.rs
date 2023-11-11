@@ -1,8 +1,9 @@
 use crate::symlink_package;
+use futures_util::future::join_all;
 use pacquet_lockfile::{PkgName, PkgNameVerPeer, RootProjectSnapshot};
 use pacquet_npmrc::Npmrc;
 use pacquet_package_manifest::DependencyGroup;
-use rayon::prelude::*;
+use tokio::task::spawn_blocking;
 
 /// This subroutine creates symbolic links in the `node_modules` directory for
 /// the direct dependencies. The targets of the link are the virtual directories.
@@ -32,26 +33,32 @@ where
             panic!("Monorepo is not yet supported"); // TODO: properly propagate this error
         };
 
-        project_snapshot
-            .dependencies_by_groups(dependency_groups)
-            .collect::<Vec<_>>()
-            .par_iter()
-            .for_each(|(name, spec)| {
-                // TODO: the code below is not optimal
-                let virtual_store_name =
-                    PkgNameVerPeer::new(PkgName::clone(name), spec.version.clone())
-                        .to_virtual_store_name();
+        join_all(
+            project_snapshot
+                .dependencies_by_groups(dependency_groups)
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|(name, spec)| {
+                    // TODO: the code below is not optimal
+                    let virtual_store_name =
+                        PkgNameVerPeer::new(PkgName::clone(name), spec.version.clone())
+                            .to_virtual_store_name();
 
-                let name_str = name.to_string();
-                symlink_package(
-                    &config
+                    let name_str = name.to_string();
+                    let symlink_target = config
                         .virtual_store_dir
                         .join(virtual_store_name)
                         .join("node_modules")
-                        .join(&name_str),
-                    &config.modules_dir.join(&name_str),
-                )
-                .expect("symlink pkg"); // TODO: properly propagate this error
-            });
+                        .join(&name_str);
+
+                    let symlink_path = config.modules_dir.join(&name_str);
+
+                    spawn_blocking(move || {
+                        symlink_package(&symlink_target, &symlink_path).expect("symlink pkg");
+                        // TODO: properly propagate this error
+                    })
+                }),
+        )
+        .await;
     }
 }
