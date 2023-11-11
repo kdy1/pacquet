@@ -27,6 +27,7 @@ rayon           = { workspace = true }
 reflink-copy    = { workspace = true }
 reqwest         = { workspace = true }
 tracing         = { workspace = true }
+tokio          = { workspace = true }
 miette          = { workspace = true }
 
 [dev-dependencies]
