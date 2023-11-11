@@ -19,7 +19,7 @@ pub enum CreateCasFilesError {
 /// If `dir_path` doesn't exist, create and populate it with files from `cas_paths`.
 ///
 /// If `dir_path` already exists, do nothing.
-pub fn create_cas_files(
+pub async fn create_cas_files(
     import_method: PackageImportMethod,
     dir_path: &Path,
     cas_paths: &HashMap<OsString, PathBuf>,

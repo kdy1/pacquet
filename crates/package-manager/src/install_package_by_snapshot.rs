@@ -76,6 +76,7 @@ impl<'a> InstallPackageBySnapshot<'a> {
             package_snapshot,
         }
         .run()
+        .await
         .map_err(InstallPackageBySnapshotError::CreateVirtualDir)?;
 
         Ok(())

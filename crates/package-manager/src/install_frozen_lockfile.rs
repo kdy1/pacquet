@@ -46,6 +46,6 @@ where
 
         CreateVirtualStore { http_client, config, packages, project_snapshot }.run().await;
 
-        SymlinkDirectDependencies { config, project_snapshot, dependency_groups }.run();
+        SymlinkDirectDependencies { config, project_snapshot, dependency_groups }.run().await;
     }
 }

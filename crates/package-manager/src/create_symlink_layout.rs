@@ -6,7 +6,7 @@ use std::{collections::HashMap, path::Path};
 /// Create symlink layout of dependencies for a package in a virtual dir.
 ///
 /// **NOTE:** `virtual_node_modules_dir` is assumed to already exist.
-pub fn create_symlink_layout(
+pub async fn create_symlink_layout(
     dependencies: &HashMap<PkgName, PackageSnapshotDependency>,
     virtual_root: &Path,
     virtual_node_modules_dir: &Path,

@@ -37,7 +37,7 @@ pub enum CreateVirtualDirError {
 
 impl<'a> CreateVirtualDirBySnapshot<'a> {
     /// Execute the subroutine.
-    pub fn run(self) -> Result<(), CreateVirtualDirError> {
+    pub async fn run(self) -> Result<(), CreateVirtualDirError> {
         let CreateVirtualDirBySnapshot {
             virtual_store_dir,
             cas_paths,
@@ -61,11 +61,12 @@ impl<'a> CreateVirtualDirBySnapshot<'a> {
         let save_path =
             virtual_node_modules_dir.join(dependency_path.package_specifier.name.to_string());
         create_cas_files(import_method, &save_path, cas_paths)
+            .await
             .map_err(CreateVirtualDirError::CreateCasFiles)?;
 
         // 2. Create the symlink layout
         if let Some(dependencies) = &package_snapshot.dependencies {
-            create_symlink_layout(dependencies, virtual_store_dir, &virtual_node_modules_dir)
+            create_symlink_layout(dependencies, virtual_store_dir, &virtual_node_modules_dir).await
         }
 
         Ok(())
